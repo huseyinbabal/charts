@@ -1,0 +1,16 @@
+{{- if .Values.serviceAccount.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "demory.fullname" . }}
+  labels:
+    {{- include "demory.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "demory.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "demory.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
