@@ -1,6 +1,6 @@
 apiVersion: v2
 name: demory
-description: A Helm chart for Kubernetes
+description: Helm chart for Demory
 
 # A chart can be either an 'application' or a 'library' chart.
 #
