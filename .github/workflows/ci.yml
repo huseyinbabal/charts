@@ -1,0 +1,27 @@
+name: Run Linter and Test Charts
+
+on: pull_request
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Run chart-testing (lint)
+        id: lint
+        uses: helm/chart-testing-action@v2.1.0
+        with:
+          command: lint
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.2.0
+        with:
+          install_local_path_provisioner: true
+        if: steps.lint.outputs.changed == 'true'
+
+      - name: Run chart-testing (install)
+        uses: helm/chart-testing-action@v2.1.0
+        with:
+          command: install
