@@ -3,6 +3,16 @@ entries:
   demory:
   - apiVersion: v2
     appVersion: 0.0.0-rc.20
+    created: "2021-10-29T20:46:54.258394651Z"
+    description: Helm chart for Demory
+    digest: dee9494f075881bd0288fdf63f97b86f4d8c4d4e65670720bebac07cd2612b7f
+    name: demory
+    type: application
+    urls:
+    - https://github.com/huseyinbabal/charts/releases/download/demory-0.2.0/demory-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: 0.0.0-rc.20
     created: "2021-10-29T20:33:17.69269011Z"
     description: A Helm chart for Kubernetes
     digest: d7f07e09252b2becffc45d57c9a4f2af2edc83c4ceacdc78cac07340979faeb9
@@ -11,4 +21,4 @@ entries:
     urls:
     - https://github.com/huseyinbabal/charts/releases/download/demory-0.1.0/demory-0.1.0.tgz
     version: 0.1.0
-generated: "2021-10-29T20:33:17.69269411Z"
+generated: "2021-10-29T20:46:54.258403351Z"
