@@ -3,6 +3,27 @@ entries:
   demory:
   - apiVersion: v2
     appVersion: 0.0.0-rc.20
+    created: "2021-10-29T22:43:26.495520703Z"
+    description: Helm chart for Demory
+    digest: 70d17de9de0cc340c7141c4da0bb65827787d2105c28cf225cbc3b753357d8ea
+    home: https://github.com/huseyinbabal/demory
+    icon: https://user-images.githubusercontent.com/1237982/139507258-96cde43a-1c86-403d-88f0-6443c0b3d069.jpg
+    keywords:
+    - keyvalue
+    - in-memory
+    - database
+    - serverless
+    - raft
+    maintainers:
+    - email: huseyinbabal88@gmail.com
+      name: huseyinbabal
+    name: demory
+    type: application
+    urls:
+    - https://github.com/huseyinbabal/charts/releases/download/demory-0.6.0/demory-0.6.0.tgz
+    version: 0.6.0
+  - apiVersion: v2
+    appVersion: 0.0.0-rc.20
     created: "2021-10-29T22:24:26.798067287Z"
     description: Helm chart for Demory
     digest: e9c1d18454bb30cdafd3681aa89dc9507be925ca62a6f2a177ea2c2741bfc2f1
@@ -62,4 +83,4 @@ entries:
     urls:
     - https://github.com/huseyinbabal/charts/releases/download/demory-0.1.0/demory-0.1.0.tgz
     version: 0.1.0
-generated: "2021-10-29T22:24:26.798087587Z"
+generated: "2021-10-29T22:43:26.495808003Z"
