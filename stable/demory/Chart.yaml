@@ -22,3 +22,14 @@ version: 0.4.0
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
 appVersion: "0.0.0-rc.20"
+icon: https://user-images.githubusercontent.com/1237982/139507258-96cde43a-1c86-403d-88f0-6443c0b3d069.jpg
+maintainers:
+  - name: huseyinbabal
+    email: huseyinbabal88@gmail.com
+home: https://github.com/huseyinbabal/demory
+keywords:
+  - keyvalue
+  - in-memory
+  - database
+  - serverless
+  - raft
