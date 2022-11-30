@@ -7,3 +7,4 @@ This is a repository for my charts, mostly they are related to my open source pr
 You can see corresponding READMEs below for each chart for step by step tutorial and all the possible options.
 
 - [Demory](stable/demory/README.md)
+- [Jaeger](stable/jaeger/README.md)
