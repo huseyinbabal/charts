@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "otel.fullname" . }}
+  labels:
+    {{- include "otel.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: "14278"
+      port: 14278
+      targetPort: 14278
+    - name: "8889"
+      port: 8889
+      targetPort: 8889
+  selector:
+    {{- include "otel.selectorLabels" . | nindent 4 }}
