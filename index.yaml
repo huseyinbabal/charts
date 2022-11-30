@@ -104,4 +104,15 @@ entries:
     urls:
     - https://github.com/huseyinbabal/charts/releases/download/demory-0.1.0/demory-0.1.0.tgz
     version: 0.1.0
-generated: "2021-10-29T22:47:02.87346623Z"
+  jaeger:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2022-11-30T21:51:51.771465499Z"
+    description: A Helm chart for Kubernetes
+    digest: ee7b4a1ead9ba2fe07ea69611f6b6328b5a8d0334f56f8e6c20c31db3ef4b579
+    name: jaeger
+    type: application
+    urls:
+    - https://github.com/huseyinbabal/charts/releases/download/jaeger-0.1.0/jaeger-0.1.0.tgz
+    version: 0.1.0
+generated: "2022-11-30T21:51:51.771744799Z"
