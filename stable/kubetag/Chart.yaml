@@ -3,7 +3,7 @@ name: kubetag
 description: A Helm chart for KubeTag - Kubernetes Container Image Tracker with Tag History
 type: application
 version: 0.1.0
-appVersion: "0.1.0"
+appVersion: "1.0.0-rc.8"
 
 keywords:
   - kubernetes
