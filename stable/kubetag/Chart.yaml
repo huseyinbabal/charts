@@ -1,0 +1,26 @@
+apiVersion: v2
+name: kubetag
+description: A Helm chart for KubeTag - Kubernetes Container Image Tracker with Tag History
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+keywords:
+  - kubernetes
+  - container
+  - image
+  - tracking
+  - monitoring
+home: https://github.com/huseyinbabal/kubetag
+sources:
+  - https://github.com/huseyinbabal/kubetag
+maintainers:
+  - name: Huseyin Babal
+    email: huseyinbabal88@gmail.com
+icon: https://raw.githubusercontent.com/huseyinbabal/kubetag/main/logo.png
+
+dependencies:
+  - name: postgresql
+    version: "~18.1.13"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

@@ -1,0 +1,30 @@
+{{- if .Values.serviceAccount.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kubetag.fullname" . }}
+  labels:
+    {{- include "kubetag.labels" . | nindent 4 }}
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["cronjobs"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "kubetag.fullname" . }}
+  labels:
+    {{- include "kubetag.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "kubetag.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "kubetag.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}
