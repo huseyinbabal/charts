@@ -115,4 +115,34 @@ entries:
     urls:
     - https://github.com/huseyinbabal/charts/releases/download/jaeger-0.1.0/jaeger-0.1.0.tgz
     version: 0.1.0
-generated: "2022-11-30T21:51:51.771744799Z"
+  kubetag:
+  - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2025-12-13T23:32:24.155630512Z"
+    dependencies:
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: ~18.1.13
+    description: A Helm chart for KubeTag - Kubernetes Container Image Tracker with
+      Tag History
+    digest: d3d6b8e4f978ee75837507d82f51b769a41137407f9702e41f4f5ee6840ac32a
+    home: https://github.com/huseyinbabal/kubetag
+    icon: https://raw.githubusercontent.com/huseyinbabal/kubetag/main/logo.png
+    keywords:
+    - kubernetes
+    - container
+    - image
+    - tracking
+    - monitoring
+    maintainers:
+    - email: huseyinbabal88@gmail.com
+      name: Huseyin Babal
+    name: kubetag
+    sources:
+    - https://github.com/huseyinbabal/kubetag
+    type: application
+    urls:
+    - https://github.com/huseyinbabal/charts/releases/download/kubetag-0.1.0/kubetag-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-12-13T23:32:24.155652203Z"
