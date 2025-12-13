@@ -24,9 +24,7 @@ jobs:
 
       - name: Helm Deps
         run: |
-          for dir in $(ls -d stable/*); do
-            helm dependency update $dir;
-          done
+          helm repo add bitnami https://charts.bitnami.com/bitnami
         env:
           HELM_EXPERIMENTAL_OCI: 1
 
