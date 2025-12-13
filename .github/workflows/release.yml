@@ -22,13 +22,15 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
-          version: v3.5.4
+          version: v4.3.1
 
       - name: Helm Deps
         run: |
           for dir in $(ls -d stable/*); do
             helm dependency update $dir;
           done
+        env:
+          HELM_EXPERIMENTAL_OCI: 1
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.2.1
