@@ -17,7 +17,6 @@ sources:
 maintainers:
   - name: Huseyin Babal
     email: huseyinbabal88@gmail.com
-icon: https://raw.githubusercontent.com/huseyinbabal/kubetag/main/logo.png
 
 dependencies:
   - name: postgresql
