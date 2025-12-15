@@ -2,37 +2,46 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# -- number of replicas for the kubetag deployment
 replicaCount: 1
 
 image:
+  # -- container image repository
   repository: ghcr.io/huseyinbabal/kubetag
+  # -- image pull policy
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "1.0.0-rc.8"
+  # -- overrides the image tag whose default is the chart appVersion
+  tag: "latest"
 
+# -- image pull secrets for private registries
 imagePullSecrets: []
+# -- override the name of the chart
 nameOverride: ""
+# -- override the fullname of the chart
 fullnameOverride: ""
 
 serviceAccount:
-  # Specifies whether a service account should be created
+  # -- specifies whether a service account should be created
   create: true
-  # Automatically mount a ServiceAccount's API credentials?
+  # -- automatically mount a ServiceAccount's API credentials
   automount: true
-  # Annotations to add to the service account
+  # -- annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
+  # -- the name of the service account to use (if not set and create is true, a name is generated using the fullname template)
   name: ""
 
+# -- annotations to add to the pod
 podAnnotations: {}
+# -- labels to add to the pod
 podLabels: {}
 
+# -- pod security context
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
   fsGroup: 1000
 
+# -- container security context
 securityContext:
   capabilities:
     drop:
@@ -42,26 +51,35 @@ securityContext:
   runAsUser: 1000
 
 service:
+  # -- service type
   type: ClusterIP
+  # -- service port
   port: 80
+  # -- container target port
   targetPort: 8080
 
 ingress:
+  # -- enable ingress
   enabled: false
+  # -- ingress class name
   className: ""
+  # -- ingress annotations
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
+  # -- ingress hosts configuration
   hosts:
     - host: kubetag.local
       paths:
         - path: /
           pathType: Prefix
+  # -- ingress TLS configuration
   tls: []
   #  - secretName: kubetag-tls
   #    hosts:
   #      - kubetag.local
 
+# -- resource limits and requests
 resources:
   limits:
     cpu: 500m
@@ -71,39 +89,54 @@ resources:
     memory: 128Mi
 
 autoscaling:
+  # -- enable horizontal pod autoscaler
   enabled: false
+  # -- minimum number of replicas
   minReplicas: 1
+  # -- maximum number of replicas
   maxReplicas: 3
+  # -- target CPU utilization percentage
   targetCPUUtilizationPercentage: 80
+  # -- target memory utilization percentage
   targetMemoryUtilizationPercentage: 80
 
-# Additional volumes on the output Deployment definition.
+# -- additional volumes on the output Deployment definition
 volumes:
   - name: tmp
     emptyDir: {}
 
-# Additional volumeMounts on the output Deployment definition.
+# -- additional volumeMounts on the output Deployment definition
 volumeMounts:
   - name: tmp
     mountPath: /tmp
 
+# -- node selector for pod assignment
 nodeSelector: {}
 
+# -- tolerations for pod assignment
 tolerations: []
 
+# -- affinity for pod assignment
 affinity: {}
 
-# PostgreSQL configuration
+# -- PostgreSQL configuration (set enabled to false to use an external PostgreSQL database)
 postgresql:
+  # -- enable PostgreSQL subchart
   enabled: true
   auth:
+    # -- PostgreSQL username
     username: kubetag
+    # -- PostgreSQL password
     password: kubetag
+    # -- PostgreSQL database name
     database: kubetag
   primary:
     persistence:
+      # -- enable PostgreSQL data persistence using PVC
       enabled: true
+      # -- PVC storage size
       size: 8Gi
+    # -- PostgreSQL resource limits and requests
     resources:
       limits:
         cpu: 500m
@@ -112,21 +145,24 @@ postgresql:
         cpu: 100m
         memory: 256Mi
 
-# External database configuration (if postgresql.enabled=false)
+# -- external database configuration (only used when postgresql.enabled=false)
 externalDatabase:
+  # -- hostname or IP address of the external PostgreSQL server
   host: ""
+  # -- port number of the external PostgreSQL server
   port: 5432
+  # -- database username
   username: kubetag
+  # -- database password (required when using external database)
   password: ""
+  # -- database name
   database: kubetag
+  # -- SSL mode for PostgreSQL connection (disable, require, verify-ca, verify-full)
   sslmode: disable
 
-# Environment variables
+# -- environment variables
 env:
   PORT: "8080"
 
-# Kubernetes namespace filtering configuration
-# watch_namespaces defines which namespaces to monitor for container images
-# Use "*" to watch all namespaces (default)
-# Or provide a comma-separated list like "default,kube-system,production"
+# -- Kubernetes namespace filtering configuration. Use "*" to watch all namespaces or provide a comma-separated list like "default,kube-system,production"
 watch_namespaces: "*"
