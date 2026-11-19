@@ -1,0 +1,173 @@
+# cvedetector: agent (per cluster) -> API (+ PostgreSQL) <- UI.
+#
+# Typical installs
+#   Everything in one cluster (default):   helm install cvedetector <chart>
+#   With an existing database:             --set postgresql.enabled=false --set externalDatabase.host=...
+#   Agent only, reporting to a central API (another cluster):
+#     --set api.enabled=false,ui.enabled=false,postgresql.enabled=false \
+#     --set agent.clusterName=prod-eu-1,agent.apiUrl=https://cvedetector.example.com \
+#     --set agent.existingTokenSecret=cvedetector-token
+
+image:
+  registry: ghcr.io/huseyinbabal
+  tag: "" # defaults to the chart appVersion
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# ---------------------------------------------------------------- agent
+agent:
+  enabled: true
+  # Name shown in the UI: lowercase letters, digits and '-', max 63.
+  clusterName: local
+  # API base URL. Empty = this release's API service.
+  apiUrl: ""
+  # Token for the API. Empty = this release's generated token (requires
+  # api.enabled). For a remote API, put the token in a Secret and set
+  # existingTokenSecret (key "token"), or set token here (stored in a Secret).
+  token: ""
+  existingTokenSecret: ""
+  resyncInterval: 10m
+  namespaces:
+    include: [] # empty = all namespaces
+    exclude: []
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 256Mi }
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------- api
+api:
+  enabled: true
+  replicas: 1 # stateless; feed sync and migrations coordinate through PostgreSQL locks
+  feed:
+    # Directory that contains v1/index.json: the `data` branch written by the
+    # feed workflow. Point it at a mirror for air-gapped installs.
+    url: https://raw.githubusercontent.com/huseyinbabal/cvedetector/data/
+    refreshInterval: 1h
+    # Bearer token for a private feed (the repository is private): a GitHub
+    # fine-grained token with read-only "Contents" access to the repository.
+    # Secret name and key; empty = no token.
+    existingTokenSecret: ""
+    existingTokenSecretKey: token
+  # Resolved findings older than this are deleted (history window).
+  retention: 8760h
+  # One metric series per workload. Off by default: high cardinality on big clusters.
+  workloadMetrics: false
+  # The agent token is generated and kept in <release>-ingest (key "token")
+  # unless existingTokenSecret (key "token") is given.
+  existingTokenSecret: ""
+  # Extra tokens, e.g. one per remote cluster: a Secret with comma-separated
+  # tokens under `key`.
+  extraTokensSecret:
+    name: ""
+    key: tokens
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  service:
+    port: 8080
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------- ui
+ui:
+  enabled: true
+  replicas: 1
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { memory: 128Mi }
+  service:
+    port: 8080
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Routes / to the UI and /api to the API (so remote agents can reach /api/v1/ingest).
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: cvedetector.local
+  tls: [] # - secretName: cvedetector-tls
+
+# ---------------------------------------------------------------- database
+# The API requires PostgreSQL. Either deploy the bundled single-instance
+# PostgreSQL, or set postgresql.enabled=false and fill externalDatabase.
+postgresql:
+  enabled: true
+  image:
+    repository: docker.io/library/postgres
+    tag: 18.6-alpine
+  auth:
+    database: cvedetector
+    username: cvedetector
+    # Empty = generated once and kept in <release>-postgresql (key "password").
+    password: ""
+    existingSecret: ""
+    existingSecretPasswordKey: password
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: "" # use block storage (not NFS)
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 1Gi }
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+externalDatabase:
+  host: ""
+  port: 5432
+  database: cvedetector
+  username: cvedetector
+  password: "" # stored in a Secret; prefer existingSecret
+  existingSecret: ""
+  existingSecretPasswordKey: password
+  sslmode: require # disable | require | verify-ca | verify-full
+
+# ---------------------------------------------------------------- monitoring
+# The API and the agent always serve /metrics on their http port. These
+# settings make Prometheus scrape them.
+metrics:
+  enabled: false
+  # Prometheus Operator: a ServiceMonitor for the API and the agent. When
+  # disabled, pods get prometheus.io/scrape annotations instead.
+  serviceMonitor:
+    enabled: false
+    interval: 60s
+    scrapeTimeout: 10s
+    labels: {} # e.g. release: kube-prometheus-stack
+  # Prometheus Operator: alerting rules. Thresholds are in seconds.
+  prometheusRule:
+    enabled: false
+    labels: {}
+    agentNotReportingSeconds: 1800 # agents report at least every 10 minutes
+    feedStaleSeconds: 172800 # the feed is rebuilt daily
+    knownExploited: true # alert while a CISA KEV vulnerability is running
+    critical: true # alert while a critical vulnerability is running
+    severity:
+      agent: warning
+      feed: warning
+      knownExploited: critical
+      critical: warning
+    additionalRules: [] # extra rules, appended as-is
+
+# Grafana dashboard (dashboards/cvedetector.json) as a ConfigMap picked up by
+# the Grafana sidecar (kube-prometheus-stack and the Grafana chart enable it
+# with `sidecar.dashboards.enabled`). Requires metrics.enabled.
+dashboard:
+  enabled: false
+  # Namespace of the ConfigMap; empty = release namespace. Set it to Grafana's
+  # namespace if the sidecar doesn't search all namespaces.
+  namespace: ""
+  labels:
+    grafana_dashboard: "1"
+  annotations: {} # e.g. grafana_folder: Security

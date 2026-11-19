@@ -1,0 +1,36 @@
+{{- if and .Values.ingress.enabled .Values.api.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "cvedetector.fullname" . }}
+  labels: {{- include "cvedetector.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls: {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # /api goes straight to the API so remote agents can ingest.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "cvedetector.apiName" . }}
+                port: { name: http }
+          {{- if .Values.ui.enabled }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "cvedetector.fullname" . }}-ui
+                port: { name: http }
+          {{- end }}
+{{- end }}
