@@ -1,0 +1,130 @@
+{{- if .Values.agent.enabled }}
+{{- $name := printf "%s-agent" (include "cvedetector.fullname" .) }}
+{{- $c := dict "ctx" $ "component" "agent" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  labels: {{- include "cvedetector.componentLabels" $c | nindent 4 }}
+---
+# Read-only: pods for images, replicaset/job metadata to resolve owners.
+# No secrets, no writes, no image pulls.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $name }}
+  labels: {{- include "cvedetector.componentLabels" $c | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, list, watch]
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}
+  labels: {{- include "cvedetector.componentLabels" $c | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels: {{- include "cvedetector.componentLabels" $c | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {{- include "cvedetector.componentSelector" $c | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "cvedetector.componentSelector" $c | nindent 8 }}
+      {{- $ann := deepCopy .Values.agent.podAnnotations }}
+      {{- if and .Values.metrics.enabled (not .Values.metrics.serviceMonitor.enabled) }}
+      {{- $_ := merge $ann (dict "prometheus.io/scrape" "true" "prometheus.io/port" "8080" "prometheus.io/path" "/metrics") }}
+      {{- end }}
+      {{- with $ann }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ $name }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: agent
+          image: {{ include "cvedetector.image" $c }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: CLUSTER_NAME
+              value: {{ .Values.agent.clusterName | quote }}
+            - name: API_URL
+              value: {{ .Values.agent.apiUrl | default (include "cvedetector.apiURL" .) | quote }}
+            - name: INGEST_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cvedetector.agentTokenSecret" . }}
+                  key: token
+            - name: RESYNC_INTERVAL
+              value: {{ .Values.agent.resyncInterval | quote }}
+            - name: NAMESPACES_INCLUDE
+              value: {{ join "," .Values.agent.namespaces.include | quote }}
+            - name: NAMESPACES_EXCLUDE
+              value: {{ join "," .Values.agent.namespaces.exclude | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources: {{- toYaml .Values.agent.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+      {{- with .Values.agent.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+# Metrics only.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "cvedetector.componentLabels" $c | nindent 4 }}
+spec:
+  selector: {{- include "cvedetector.componentSelector" $c | nindent 4 }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+{{- end }}

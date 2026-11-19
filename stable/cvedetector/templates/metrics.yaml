@@ -1,0 +1,101 @@
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "cvedetector.fullname" . }}
+  labels:
+    {{- include "cvedetector.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}{{ toYaml . | nindent 4 }}{{ end }}
+spec:
+  namespaceSelector:
+    matchNames: [{{ .Release.Namespace | quote }}]
+  selector:
+    matchExpressions:
+      - { key: app.kubernetes.io/instance, operator: In, values: [{{ .Release.Name | quote }}] }
+      - { key: app.kubernetes.io/component, operator: In, values: [api, agent] }
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
+{{- end }}
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled }}
+{{- $r := .Values.metrics.prometheusRule }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "cvedetector.fullname" . }}
+  labels:
+    {{- include "cvedetector.labels" . | nindent 4 }}
+    {{- with $r.labels }}{{ toYaml . | nindent 4 }}{{ end }}
+spec:
+  groups:
+    - name: cvedetector
+      rules:
+        # Every API replica reports the same values: aggregate with max().
+        - alert: CvedetectorAgentNotReporting
+          expr: time() - max by (cluster) (cvedetector_cluster_last_report_timestamp_seconds) > {{ $r.agentNotReportingSeconds }}
+          for: 5m
+          labels:
+            severity: {{ $r.severity.agent }}
+          annotations:
+            summary: "cvedetector agent of cluster {{`{{ $labels.cluster }}`}} stopped reporting"
+            description: "No inventory for {{`{{ $value | humanizeDuration }}`}}. The agent may be down or unable to reach the API; findings for this cluster are frozen."
+        - alert: CvedetectorFeedStale
+          expr: max(cvedetector_feed_age_seconds) > {{ $r.feedStaleSeconds }}
+          for: 30m
+          labels:
+            severity: {{ $r.severity.feed }}
+          annotations:
+            summary: "cvedetector CVE feed is stale"
+            description: "The feed is {{`{{ $value | humanizeDuration }}`}} old. New CVEs are not being matched. Check the feed workflow and the API's FEED_URL/FEED_TOKEN."
+        - alert: CvedetectorFeedSyncFailing
+          expr: increase(cvedetector_feed_sync_errors_total[3h]) >= 3
+          for: 10m
+          labels:
+            severity: {{ $r.severity.feed }}
+          annotations:
+            summary: "cvedetector API cannot sync the CVE feed"
+            description: "Feed sync failed repeatedly on {{`{{ $labels.pod }}`}}. The previous feed is still in use."
+        {{- if $r.knownExploited }}
+        - alert: CvedetectorKnownExploitedVulnerability
+          expr: max by (cluster, namespace) (cvedetector_kev_vulnerabilities) > 0
+          for: 15m
+          labels:
+            severity: {{ $r.severity.knownExploited }}
+          annotations:
+            summary: "Known exploited vulnerability running in {{`{{ $labels.cluster }}/{{ $labels.namespace }}`}}"
+            description: "{{`{{ $value }}`}} vulnerabilities from the CISA KEV catalog (exploited in the wild) affect running images. Upgrade the affected images."
+        {{- end }}
+        {{- if $r.critical }}
+        - alert: CvedetectorCriticalVulnerability
+          expr: max by (cluster, namespace) (cvedetector_vulnerabilities{severity="CRITICAL"}) > 0
+          for: 15m
+          labels:
+            severity: {{ $r.severity.critical }}
+          annotations:
+            summary: "Critical vulnerability running in {{`{{ $labels.cluster }}/{{ $labels.namespace }}`}}"
+            description: "{{`{{ $value }}`}} critical vulnerabilities affect running images."
+        {{- end }}
+        {{- with $r.additionalRules }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}
+{{- if .Values.dashboard.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cvedetector.fullname" . }}-dashboard
+  namespace: {{ .Values.dashboard.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "cvedetector.labels" . | nindent 4 }}
+    {{- with .Values.dashboard.labels }}{{ toYaml . | nindent 4 }}{{ end }}
+  {{- with .Values.dashboard.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  cvedetector.json: |-
+    {{- .Files.Get "dashboards/cvedetector.json" | nindent 4 }}
+{{- end }}

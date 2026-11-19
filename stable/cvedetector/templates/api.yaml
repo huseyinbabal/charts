@@ -1,0 +1,134 @@
+{{- if .Values.api.enabled }}
+{{- $name := include "cvedetector.apiName" . }}
+{{- $c := dict "ctx" $ "component" "api" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels: {{- include "cvedetector.componentLabels" $c | nindent 4 }}
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector:
+    matchLabels: {{- include "cvedetector.componentSelector" $c | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "cvedetector.componentSelector" $c | nindent 8 }}
+      {{- $ann := deepCopy .Values.api.podAnnotations }}
+      {{- if and .Values.metrics.enabled (not .Values.metrics.serviceMonitor.enabled) }}
+      {{- $_ := merge $ann (dict "prometheus.io/scrape" "true" "prometheus.io/port" "8080" "prometheus.io/path" "/metrics") }}
+      {{- end }}
+      {{- with $ann }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: api
+          image: {{ include "cvedetector.image" $c }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            {{- if .Values.postgresql.enabled }}
+            - name: PGHOST
+              value: {{ include "cvedetector.fullname" . }}-postgresql
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: {{ .Values.postgresql.auth.database | quote }}
+            - name: PGUSER
+              value: {{ .Values.postgresql.auth.username | quote }}
+            - name: PGSSLMODE
+              value: disable # in-cluster bundled database
+            {{- else }}
+            - name: PGHOST
+              value: {{ .Values.externalDatabase.host | quote }}
+            - name: PGPORT
+              value: {{ .Values.externalDatabase.port | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.externalDatabase.database | quote }}
+            - name: PGUSER
+              value: {{ .Values.externalDatabase.username | quote }}
+            - name: PGSSLMODE
+              value: {{ .Values.externalDatabase.sslmode | quote }}
+            {{- end }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cvedetector.dbSecret" . }}
+                  key: {{ include "cvedetector.dbSecretKey" . }}
+            - name: INGEST_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cvedetector.ingestSecret" . }}
+                  key: token
+            {{- with .Values.api.extraTokensSecret.name }}
+            - name: INGEST_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: {{ $.Values.api.extraTokensSecret.key }}
+            {{- end }}
+            - name: FEED_URL
+              value: {{ .Values.api.feed.url | quote }}
+            {{- with .Values.api.feed.existingTokenSecret }}
+            - name: FEED_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: {{ $.Values.api.feed.existingTokenSecretKey }}
+            {{- end }}
+            - name: FEED_REFRESH_INTERVAL
+              value: {{ .Values.api.feed.refreshInterval | quote }}
+            - name: RETENTION
+              value: {{ .Values.api.retention | quote }}
+            - name: WORKLOAD_METRICS
+              value: {{ .Values.api.workloadMetrics | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          startupProbe:
+            # The API waits up to 3 minutes for the database before giving up.
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+            failureThreshold: 48
+          resources: {{- toYaml .Values.api.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "cvedetector.componentLabels" $c | nindent 4 }}
+spec:
+  selector: {{- include "cvedetector.componentSelector" $c | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: http
+{{- end }}
