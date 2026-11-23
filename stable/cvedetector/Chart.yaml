@@ -2,12 +2,32 @@ apiVersion: v2
 name: cvedetector
 description: Maps running container images to known CVEs using a published feed. No image scanning. Agent, API (PostgreSQL) and UI.
 type: application
-version: 0.3.0
+version: 0.3.1
 appVersion: "0.3.0"
 keywords: [security, cve, vulnerabilities, kubernetes]
-home: https://github.com/huseyinbabal/cvedetector
+home: https://huseyinbabal.github.io/cvedetector/
+icon: https://huseyinbabal.github.io/cvedetector/logo.svg
 sources:
   - https://github.com/huseyinbabal/cvedetector
 maintainers:
   - name: huseyinbabal
     url: https://github.com/huseyinbabal
+annotations:
+  artifacthub.io/category: security
+  artifacthub.io/images: |
+    - name: agent
+      image: ghcr.io/huseyinbabal/cvedetector-agent:0.3.0
+    - name: api
+      image: ghcr.io/huseyinbabal/cvedetector-api:0.3.0
+    - name: ui
+      image: ghcr.io/huseyinbabal/cvedetector-ui:0.3.0
+    - name: postgresql
+      image: docker.io/library/postgres:18.6-alpine
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://huseyinbabal.github.io/cvedetector/
+    - name: Source
+      url: https://github.com/huseyinbabal/cvedetector
+  artifacthub.io/changes: |
+    - kind: added
+      description: Artifact Hub metadata (images, links, category, icon)
