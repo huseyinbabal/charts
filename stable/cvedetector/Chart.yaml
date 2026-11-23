@@ -9,4 +9,5 @@ home: https://github.com/huseyinbabal/cvedetector
 sources:
   - https://github.com/huseyinbabal/cvedetector
 maintainers:
-  - name: Huseyin Babal
+  - name: huseyinbabal
+    url: https://github.com/huseyinbabal

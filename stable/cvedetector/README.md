@@ -2,6 +2,8 @@
 
 Shows which known CVEs affect the container images running in your Kubernetes clusters, and tracks them over time. No image scanning: image versions are read from tags and matched against a CVE feed built from NVD and OSV.
 
+Documentation: https://huseyinbabal.github.io/cvedetector/
+
 Source and images: [huseyinbabal/cvedetector](https://github.com/huseyinbabal/cvedetector) (`ghcr.io/huseyinbabal/cvedetector-{agent,api,ui}`). Chart `appVersion` is the image tag.
 
 Components: **agent** (read-only, per cluster) → **API** (PostgreSQL) ← **UI**.
@@ -23,14 +25,9 @@ The API requires PostgreSQL.
 | Bundled (default) | `postgresql.enabled=true`: single-instance `postgres:18.6-alpine` StatefulSet with an 8Gi PVC. Password generated once and kept across upgrades. |
 | External | `postgresql.enabled=false`, `externalDatabase.host`, `externalDatabase.existingSecret` (key `password`), `externalDatabase.sslmode` |
 
-## Private feed
+## Feed
 
-While the feed repository is private, give the API a GitHub fine-grained token with read-only *Contents* access:
-
-```sh
-kubectl -n cvedetector create secret generic cvedetector-feed --from-literal=token=<github token>
---set api.feed.existingTokenSecret=cvedetector-feed
-```
+The API reads the public feed from the repository's `data` branch every hour. For air-gapped clusters, mirror `v1/` to an HTTP server the API can reach and set `api.feed.url`; `api.feed.existingTokenSecret` adds a bearer token if the mirror needs one.
 
 ## More clusters
 

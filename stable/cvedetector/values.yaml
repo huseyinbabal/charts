@@ -48,8 +48,7 @@ api:
     # feed workflow. Point it at a mirror for air-gapped installs.
     url: https://raw.githubusercontent.com/huseyinbabal/cvedetector/data/
     refreshInterval: 1h
-    # Bearer token for a private feed (the repository is private): a GitHub
-    # fine-grained token with read-only "Contents" access to the repository.
+    # Bearer token for a mirror that requires one (the published feed doesn't).
     # Secret name and key; empty = no token.
     existingTokenSecret: ""
     existingTokenSecretKey: token
