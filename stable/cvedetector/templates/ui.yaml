@@ -1,0 +1,79 @@
+{{- if .Values.ui.enabled }}
+{{- $name := printf "%s-ui" (include "cvedetector.fullname" .) }}
+{{- $c := dict "ctx" $ "component" "ui" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels: {{- include "cvedetector.componentLabels" $c | nindent 4 }}
+spec:
+  replicas: {{ .Values.ui.replicas }}
+  selector:
+    matchLabels: {{- include "cvedetector.componentSelector" $c | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "cvedetector.componentSelector" $c | nindent 8 }}
+      {{- with .Values.ui.podAnnotations }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: ui
+          image: {{ include "cvedetector.image" $c }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: API_URL
+              value: {{ include "cvedetector.apiURL" . | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+          resources: {{- toYaml .Values.ui.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            # nginx renders its config from a template at start and keeps
+            # pid/temp files in /tmp.
+            - { name: conf, mountPath: /etc/nginx/conf.d }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: conf, emptyDir: {} }
+        - { name: tmp, emptyDir: {} }
+      {{- with .Values.ui.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ui.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ui.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "cvedetector.componentLabels" $c | nindent 4 }}
+spec:
+  selector: {{- include "cvedetector.componentSelector" $c | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.ui.service.port }}
+      targetPort: http
+{{- end }}

@@ -1,0 +1,27 @@
+{{- $full := include "cvedetector.fullname" . -}}
+cvedetector {{ .Chart.AppVersion }} installed in namespace {{ .Release.Namespace }}.
+{{ if .Values.ui.enabled }}
+Open the UI:
+{{- if .Values.ingress.enabled }}
+  http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}/
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ $full }}-ui 8080:{{ .Values.ui.service.port }}
+  open http://localhost:8080
+{{- end }}
+{{ end }}
+{{- if .Values.api.enabled }}
+Database: {{ if .Values.postgresql.enabled }}bundled PostgreSQL ({{ $full }}-postgresql{{ if not .Values.postgresql.persistence.enabled }}, NO persistence: history is lost on restart{{ end }}){{ else }}external PostgreSQL at {{ .Values.externalDatabase.host }}{{ end }}
+Feed:     {{ .Values.api.feed.url }}
+
+Connect another cluster: install this chart there in agent-only mode with the
+token from this release:
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "cvedetector.ingestSecret" . }} -o jsonpath='{.data.token}' | base64 -d
+{{ end }}
+{{- if .Values.agent.enabled }}
+Agent reports as cluster "{{ .Values.agent.clusterName }}" to {{ .Values.agent.apiUrl | default (include "cvedetector.apiURL" .) }}.
+{{- end }}
+{{- if .Values.metrics.enabled }}
+
+Metrics: {{ if .Values.metrics.serviceMonitor.enabled }}ServiceMonitor{{ else }}prometheus.io/scrape annotations{{ end }}{{ if .Values.metrics.prometheusRule.enabled }}, alerting rules{{ end }}{{ if .Values.dashboard.enabled }}, Grafana dashboard ConfigMap "{{ include "cvedetector.fullname" . }}-dashboard" in {{ .Values.dashboard.namespace | default .Release.Namespace }}{{ end }}.
+{{- end }}

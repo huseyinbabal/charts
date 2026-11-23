@@ -1,0 +1,13 @@
+apiVersion: v2
+name: cvedetector
+description: Maps running container images to known CVEs using a published feed. No image scanning. Agent, API (PostgreSQL) and UI.
+type: application
+version: 0.3.0
+appVersion: "0.3.0"
+keywords: [security, cve, vulnerabilities, kubernetes]
+home: https://github.com/huseyinbabal/cvedetector
+sources:
+  - https://github.com/huseyinbabal/cvedetector
+maintainers:
+  - name: huseyinbabal
+    url: https://github.com/huseyinbabal
